@@ -83,13 +83,14 @@ stage('Build & Test') {
         sh '''
         export CHROME_BIN=/usr/bin/google-chrome
         export CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+        export DISPLAY=:99
         
-        # ������ headless ����� � ���������� �� user-data-dir
-        export CHROME_OPTS="--headless --disable-gpu --no-sandbox --disable-dev-shm-usage --remote-debugging-port=9222"
+        # Start virtual framebuffer if needed
+        Xvfb :99 -screen 0 1280x1024x16 &
         
         dotnet restore
         dotnet build
-        dotnet test
+        dotnet test --logger "trx;LogFileName=testresults.trx"
         '''
     }
 }}
