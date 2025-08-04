@@ -3,31 +3,37 @@ pipeline {
         docker {
             image 'mcr.microsoft.com/dotnet/sdk:8.0'
             args '-v /var/run/docker.sock:/var/run/docker.sock -u root'
-            reuseNode true
         }
     }
 
     environment {
-        CHROME_VERSION = '120.0.6099.71'  // Примерна версия
+        CHROME_VERSION = '120.0.6099.71'
         CHROMEDRIVER_VERSION = '120.0.6099.71'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Install Dependencies') {
             steps {
-                checkout scm
+                sh '''
+                apt-get update && apt-get install -y --no-install-recommends \
+                    wget \
+                    unzip \
+                    gnupg \  # Added gnupg for apt-key
+                    curl \
+                    ca-certificates
+                '''
             }
         }
 
         stage('Install Chrome') {
             steps {
                 sh '''
-                # Добавяне на Chrome репозитори
+                # Add Chrome repository
                 wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
                 echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
                 apt-get update
                 
-                # Инсталиране на конкретна версия
+                # Install specific Chrome version
                 apt-get install -y google-chrome-stable=${env.CHROME_VERSION}-1
                 '''
             }
@@ -36,7 +42,7 @@ pipeline {
         stage('Install ChromeDriver') {
             steps {
                 sh '''
-                # Сваляне на ChromeDriver
+                # Download ChromeDriver
                 wget -q "https://chromedriver.storage.googleapis.com/${env.CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
                 unzip chromedriver_linux64.zip -d /usr/local/bin/
                 chmod +x /usr/local/bin/chromedriver
