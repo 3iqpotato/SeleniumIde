@@ -8,33 +8,33 @@ pipeline {
             }
         }
 
-        stage('Setup .NET') {
+        stage('Install Prerequisites') {
             steps {
-                script {
-                    // Проверка дали .NET вече е инсталиран
-                    def dotnetInstalled = sh(returnStatus: true, script: 'command -v dotnet') == 0
-                    
-                    if (!dotnetInstalled) {
-                        // Инсталиране на .NET 6
-                        sh '''
-                        wget https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-                        sudo dpkg -i packages-microsoft-prod.deb
-                        rm packages-microsoft-prod.deb
-                        sudo apt-get update
-                        sudo apt-get install -y dotnet-sdk-6.0
-                        '''
-                    }
-                    
-                    sh 'dotnet --version'
-                }
+                sh '''
+                # Инсталиране на curl ако липсва
+                if ! command -v curl &> /dev/null; then
+                    echo "Инсталиране на curl..."
+                    sudo apt-get update && sudo apt-get install -y curl
+                fi
+
+                # Проверка за .NET
+                if ! command -v dotnet &> /dev/null; then
+                    echo "Инсталиране на .NET 6..."
+                    curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version 6.0.400
+                    export PATH="$PATH:$HOME/.dotnet"
+                fi
+                '''
             }
         }
 
         stage('Build and Test') {
             steps {
-                sh 'dotnet restore'
-                sh 'dotnet build --configuration Release'
-                sh 'dotnet test --logger "trx;LogFileName=TestResults.trx"'
+                sh '''
+                export PATH="$PATH:$HOME/.dotnet"
+                dotnet restore
+                dotnet build --configuration Release
+                dotnet test --logger "trx;LogFileName=TestResults.trx"
+                '''
             }
         }
     }
