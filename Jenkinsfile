@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'mcr.microsoft.com/dotnet/sdk:8.0'
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
@@ -27,34 +27,35 @@ pipeline {
                     libappindicator1 \
                     libnss3 \
                     lsb-release \
-                    xdg-utils
+                    xdg-utils \
+                    curl \
+                    ca-certificates \
+                    software-properties-common
                 '''
             }
         }
 
-        stage('Install Specific Chrome Version') {
+        stage('Install Chrome & ChromeDriver') {
             steps {
                 sh '''
-                # Install Chrome 115 (known stable version)
-                wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_115.0.5790.170-1_amd64.deb
-                dpkg -i google-chrome-stable_115.0.5790.170-1_amd64.deb || apt-get -f install -y
-                rm google-chrome-stable_115.0.5790.170-1_amd64.deb
-                '''
-            }
-        }
+                # Install latest Chrome
+                wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+                sh -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
+                apt-get update
+                apt-get install -y google-chrome-stable
 
-        stage('Install Matching ChromeDriver') {
-            steps {
-                sh '''
-                # Install ChromeDriver 115.0.5790.170
-                wget https://chromedriver.storage.googleapis.com/115.0.5790.170/chromedriver_linux64.zip
+                # Get matching ChromeDriver
+                CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+')
+                wget "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}" -O chromedriver_version
+                CHROMEDRIVER_VERSION=$(cat chromedriver_version)
+                wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
                 unzip chromedriver_linux64.zip -d /usr/local/bin/
                 chmod +x /usr/local/bin/chromedriver
-                rm chromedriver_linux64.zip
-                
-                # Verify versions
-                echo "Chrome version: $(google-chrome --version)"
-                echo "ChromeDriver version: $(chromedriver --version)"
+                rm chromedriver_linux64.zip chromedriver_version
+
+                # Confirm installation
+                google-chrome --version
+                chromedriver --version
                 '''
             }
         }
@@ -62,7 +63,7 @@ pipeline {
         stage('Build & Test') {
             steps {
                 sh '''
-                export CHROME_BIN=/usr/bin/google-chrome-stable
+                export CHROME_BIN=/usr/bin/google-chrome
                 export CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
                 
                 dotnet restore
