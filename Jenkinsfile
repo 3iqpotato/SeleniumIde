@@ -45,21 +45,23 @@ stage('Install Chrome & ChromeDriver') {
         apt-get update
         apt-get install -y google-chrome-stable
 
-        # Get ChromeDriver version - more reliable method
-        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
-        echo "Detected Chrome major version: $CHROME_VERSION"
+        # Get exact Chrome version
+        CHROME_FULL_VERSION=$(google-chrome --version | awk '{print $3}')
+        echo "Detected Chrome version: $CHROME_FULL_VERSION"
         
-        # Get ChromeDriver version with retry logic
-        CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+        # Extract major version number
+        CHROME_MAJOR_VERSION=$(echo $CHROME_FULL_VERSION | cut -d'.' -f1)
+        echo "Chrome major version: $CHROME_MAJOR_VERSION"
+        
+        # Get ChromeDriver version with multiple fallback methods
+        CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR_VERSION" || \\
+          curl -sS "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR_VERSION" || \\
+          echo "138.0.0") # Fallback version if both methods fail
+        
         echo "ChromeDriver version to install: $CHROMEDRIVER_VERSION"
         
-        if [ -z "$CHROMEDRIVER_VERSION" ]; then
-            echo "Failed to get ChromeDriver version, trying alternative method"
-            CHROMEDRIVER_VERSION=$(curl -sS "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-        fi
-        
         # Download and install ChromeDriver
-        wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
         unzip chromedriver_linux64.zip -d /usr/local/bin/
         chmod +x /usr/local/bin/chromedriver
         rm chromedriver_linux64.zip
