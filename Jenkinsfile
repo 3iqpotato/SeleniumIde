@@ -1,34 +1,26 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'mcr.microsoft.com/dotnet/sdk:6.0'
+            args '--user root'  # За административни права
+        }
+    }
 
     environment {
-        CHROME_VERSION = '127.0.6533.73'
-        CHROMEDRIVER_VERSION = '127.0.6533.72'
-        // Променете пътищата според вашия Docker контейнер
-        CHROME_INSTALL_PATH = '/usr/bin/google-chrome'  // Linux път в Docker
-        CHROMEDRIVER_PATH = '/usr/local/bin/chromedriver'
+        CHROME_VERSION = '114.0.5735.90'
+        CHROMEDRIVER_VERSION = '114.0.5735.90'
     }
 
     stages {
-        stage('Checkout code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main', 
-                url: 'https://github.com/3iqpotato/SeleniumIde.git'
+                checkout scm
             }
         }
 
-        stage('Set up .NET Core') {
-            steps {
-                sh 'dotnet --list-sdks || echo ".NET not installed"'
-                // За Docker, по-добре е да използвате предварително конфигуриран image с .NET
-                sh 'dotnet restore SeleniumIde.sln'
-            }
-        }
-
-        stage('Chrome Setup') {
+        stage('Install Chrome') {
             steps {
                 sh '''
-                # Инсталиране на Chrome
                 wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
                 echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
                 apt-get update
@@ -40,19 +32,19 @@ pipeline {
         stage('Install ChromeDriver') {
             steps {
                 sh '''
-                # Сваляне и инсталиране на ChromeDriver
                 wget -N https://chromedriver.storage.googleapis.com/${env.CHROMEDRIVER_VERSION}/chromedriver_linux64.zip
                 unzip chromedriver_linux64.zip
                 chmod +x chromedriver
-                mv chromedriver ${env.CHROMEDRIVER_PATH}
+                mv chromedriver /usr/local/bin/
                 '''
             }
         }
 
         stage('Build and Test') {
             steps {
-                sh 'dotnet build SeleniumIde.sln --configuration Release'
-                sh 'dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults.trx"'
+                sh 'dotnet restore'
+                sh 'dotnet build --configuration Release'
+                sh 'dotnet test --logger "trx;LogFileName=TestResults.trx"'
             }
         }
     }
