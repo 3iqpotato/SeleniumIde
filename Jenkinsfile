@@ -91,10 +91,4 @@ pipeline {
         }
     }
     
-    post {
-        always {
-            archiveArtifacts artifacts: '**/TestResults/*.*', allowEmptyArchive: true
-            junit '**/TestResults/*.xml'  // Търси JUnit XML файлове, които се генерират от trx2junit
-        }
-    }
 }
