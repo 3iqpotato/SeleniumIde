@@ -19,7 +19,7 @@ pipeline {
                 apt-get update && apt-get install -y --no-install-recommends \
                     wget \
                     unzip \
-                    gnupg \  # Added gnupg package
+                    gnupg \
                     xvfb \
                     libxi6 \
                     libgconf-2-4 \
