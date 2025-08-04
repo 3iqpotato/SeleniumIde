@@ -79,15 +79,17 @@ pipeline {
             }
         }
         
-        stage('Build and Test') {
-            steps {
-                bat '''
-                dotnet restore SeleniumIde.sln
-                dotnet build SeleniumIde.sln --configuration Release
-                dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults.trx"
-                '''
-            }
-        }
+stage('Build and Test') {
+    steps {
+        bat '''
+        dotnet restore SeleniumIde.sln
+        dotnet build SeleniumIde.sln --configuration Release
+        if not exist TestResults mkdir TestResults
+        dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults\\TestResults.trx"
+        '''
+    }
+}
+
     }
     
     post {
