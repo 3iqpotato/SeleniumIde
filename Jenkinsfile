@@ -25,11 +25,15 @@ pipeline {
                     where choco >nul 2>&1
                     if %ERRORLEVEL% neq 0 (
                         echo Installing Chocolatey
-                        powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+                        powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+                        set PATH=%PATH%;%ALLUSERSPROFILE%\\chocolatey\\bin
                     ) else (
                         echo Chocolatey already installed
                     )
                     '''
+                    
+                    // Refresh environment to make choco available
+                    bat 'refreshenv'
                     
                     // Install .NET SDK 6.0
                     bat 'choco install dotnet-sdk -y --version=6.0.100'
