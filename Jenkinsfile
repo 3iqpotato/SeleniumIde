@@ -39,8 +39,11 @@ pipeline {
                 wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg
                 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
                 
-                # Install specific Chrome version (114.x which is more stable)
-                apt-get update && apt-get install -y google-chrome-stable=114.0.5735.198-1
+                # Install latest stable Chrome
+                apt-get update && apt-get install -y google-chrome-stable
+                
+                # Verify installation
+                google-chrome --version
                 '''
             }
         }
@@ -48,27 +51,47 @@ pipeline {
         stage('Install ChromeDriver') {
             steps {
                 sh '''
-                # Get matching ChromeDriver version for Chrome 114
-                CHROMEDRIVER_VERSION="114.0.5735.90"
-                wget -N https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip
-                unzip chromedriver_linux64.zip -d /usr/local/bin/
+                # Get installed Chrome version
+                CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+                echo "Installed Chrome version: $CHROME_VERSION"
+                
+                # Get major version number
+                MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d'.' -f1)
+                echo "Major version: $MAJOR_VERSION"
+                
+                # Download matching ChromeDriver
+                CHROMEDRIVER_VERSION=$(wget -q -O - "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$MAJOR_VERSION")
+                echo "Matching ChromeDriver version: $CHROMEDRIVER_VERSION"
+                
+                wget -N https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
+                unzip -o chromedriver_linux64.zip -d /usr/local/bin/
                 chmod +x /usr/local/bin/chromedriver
                 rm chromedriver_linux64.zip
+                
+                # Verify ChromeDriver
+                chromedriver --version
                 '''
             }
         }
 
         stage('Build & Test') {
             steps {
-                sh 'dotnet restore'
-                sh 'dotnet build'
                 sh '''
-                # Run tests with Chrome binary location
-                export CHROME_PATH=/usr/bin/google-chrome-stable
+                export CHROME_BIN=/usr/bin/google-chrome-stable
                 export CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+                
+                dotnet restore
+                dotnet build
                 dotnet test
                 '''
             }
+        }
+    }
+
+    post {
+        always {
+            junit '**/TestResults/*.trx'
+            archiveArtifacts artifacts: '**/TestResults/*.trx', allowEmptyArchive: true
         }
     }
 }
