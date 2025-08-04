@@ -2,10 +2,9 @@ pipeline {
     agent {
         docker {
             image 'mcr.microsoft.com/dotnet/sdk:8.0'
-            args '-v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE/.cache:/home/seluser/.cache'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE/.cache:/home/seluser/.cache'  // Added -u root
         }
     }
-
 
     environment {
         DOTNET_CLI_TELEMETRY_OPTOUT = "1"
@@ -16,7 +15,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/3iqpotato/SeleniumIde.git'
+                checkout scm
             }
         }
 
@@ -35,16 +34,27 @@ pipeline {
         stage('Setup Chrome & Chromedriver') {
             steps {
                 sh '''
-                apt-get update
-                apt-get install -y wget unzip xvfb libxi6 libgconf-2-4
+                apt-get update && apt-get install -y --no-install-recommends \
+                    wget \
+                    unzip \
+                    xvfb \
+                    libxi6 \
+                    libgconf-2-4 \
+                    fonts-liberation \
+                    libappindicator1 \
+                    libnss3 \
+                    lsb-release \
+                    xdg-utils
 
-                # Инсталиране на Google Chrome stable
-                wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-                dpkg -i google-chrome-stable_current_amd64.deb || apt-get -f install -y
+                # Install Chrome
+                wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+                echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+                apt-get update && apt-get install -y google-chrome-stable
 
-                # Изтегляне и инсталиране на ChromeDriver (примерно за версия 116)
-                CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+')
-                wget -N https://chromedriver.storage.googleapis.com/116.0.5845.96/chromedriver_linux64.zip
+                # Install ChromeDriver (matching version)
+                CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+                CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*})
+                wget -N https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
                 unzip chromedriver_linux64.zip -d /usr/local/bin/
                 chmod +x /usr/local/bin/chromedriver
                 '''
@@ -54,13 +64,6 @@ pipeline {
         stage('Test') {
             steps {
                 sh 'dotnet test --no-build'
-            }
-        }
-
-        stage('Prepare for E2E Tests') {
-            steps {
-                echo '?? Тук ще пуснем Selenium + Chrome (E2E тестове)'
-                // Добави твоята логика за E2E тестове
             }
         }
     }
