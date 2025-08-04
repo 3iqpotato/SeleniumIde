@@ -20,7 +20,10 @@ public class TC01IfUserIsInvalidTryAgainTest
 
     [SetUp]
     public void SetUp()
-    {
+    {   
+        ChromeOptions options = new ChromeOptions();
+        options.AddArgument("--headless"); // Run in headless mode
+
         driver = new ChromeDriver();
         js = (IJavaScriptExecutor)driver;
         vars = new Dictionary<string, object>();
