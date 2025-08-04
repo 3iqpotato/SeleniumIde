@@ -8,21 +8,17 @@ pipeline {
             }
         }
 
-        stage('Install Prerequisites') {
+        stage('Install .NET 8') {
             steps {
                 sh '''
-                # Инсталиране на curl ако липсва
-                if ! command -v curl &> /dev/null; then
-                    echo "Инсталиране на curl..."
-                    sudo apt-get update && sudo apt-get install -y curl
-                fi
-
-                # Проверка за .NET
+                # Проверка дали .NET вече е инсталиран
                 if ! command -v dotnet &> /dev/null; then
-                    echo "Инсталиране на .NET 6..."
-                    curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version 6.0.400
+                    echo "Инсталиране на .NET 8..."
+                    curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version 8.0.100
                     export PATH="$PATH:$HOME/.dotnet"
                 fi
+                
+                dotnet --version
                 '''
             }
         }
