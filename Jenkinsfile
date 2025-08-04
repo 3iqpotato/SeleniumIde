@@ -18,7 +18,7 @@ pipeline {
                 apt-get update && apt-get install -y --no-install-recommends \
                     wget \
                     unzip \
-                    gnupg \  # Added gnupg for apt-key
+                    gnupg \
                     curl \
                     ca-certificates
                 '''
@@ -34,7 +34,7 @@ pipeline {
                 apt-get update
                 
                 # Install specific Chrome version
-                apt-get install -y google-chrome-stable=${env.CHROME_VERSION}-1
+                apt-get install -y google-chrome-stable=${CHROME_VERSION}-1
                 '''
             }
         }
@@ -43,7 +43,7 @@ pipeline {
             steps {
                 sh '''
                 # Download ChromeDriver
-                wget -q "https://chromedriver.storage.googleapis.com/${env.CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+                wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
                 unzip chromedriver_linux64.zip -d /usr/local/bin/
                 chmod +x /usr/local/bin/chromedriver
                 rm chromedriver_linux64.zip
