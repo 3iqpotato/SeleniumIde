@@ -12,7 +12,7 @@ pipeline {
         stage('Checkout code') {
             steps {
                 git branch: 'main', 
-                url: 'https://github.com//SeleniumIDE.git'
+                url: 'https://github.com/3iqpotato/SeleniumIde.git'
             }
         }
         
