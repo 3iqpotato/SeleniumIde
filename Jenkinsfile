@@ -16,7 +16,24 @@ pipeline {
                     gnupg \
                     curl \
                     ca-certificates \
-                    apt-utils
+                    apt-transport-https \
+                    software-properties-common \
+                    libxss1 \
+                    libxtst6 \
+                    libx11-xcb1 \
+                    libxcomposite1 \
+                    libxcursor1 \
+                    libxdamage1 \
+                    libxi6 \
+                    libxtst6 \
+                    libnss3 \
+                    libcups2 \
+                    libxrandr2 \
+                    libasound2 \
+                    libatk1.0-0 \
+                    libatk-bridge2.0-0 \
+                    libpangocairo-1.0-0 \
+                    libgtk-3-0
                 '''
             }
         }
@@ -24,14 +41,10 @@ pipeline {
         stage('Install Chrome') {
             steps {
                 sh '''
-                # Add Chrome repository (modern method without apt-key)
-                mkdir -p /etc/apt/keyrings
-                wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub > /etc/apt/keyrings/google-chrome.gpg
-                echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-                apt-get update
-                
-                # Install latest stable Chrome
-                apt-get install -y google-chrome-stable
+                # Install Chrome using the direct download method (more reliable)
+                wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+                apt-get install -y ./google-chrome-stable_current_amd64.deb
+                rm google-chrome-stable_current_amd64.deb
                 '''
             }
         }
