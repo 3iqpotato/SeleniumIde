@@ -84,7 +84,7 @@ stage('Build & Test') {
         export CHROME_BIN=/usr/bin/google-chrome
         export CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
         
-        # Добави headless режим и изчистване на user-data-dir
+        # пїЅпїЅпїЅпїЅпїЅпїЅ headless пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ user-data-dir
         export CHROME_OPTS="--headless --disable-gpu --no-sandbox --disable-dev-shm-usage --remote-debugging-port=9222"
         
         dotnet restore
@@ -100,4 +100,4 @@ stage('Build & Test') {
             archiveArtifacts artifacts: '**/TestResults/*.trx', allowEmptyArchive: true
         }
     }
-}
+}}
