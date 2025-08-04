@@ -36,31 +36,40 @@ pipeline {
             }
         }
 
-        stage('Install Chrome & ChromeDriver') {
-            steps {
-                sh '''
-                # Install Chrome
-                wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-                echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-                apt-get update
-                apt-get install -y google-chrome-stable
+stage('Install Chrome & ChromeDriver') {
+    steps {
+        sh '''
+        # Install Chrome
+        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+        apt-get update
+        apt-get install -y google-chrome-stable
 
-                # Get ChromeDriver version
-                CHROME_MAJOR_VERSION=$(google-chrome --version | grep -oE "[0-9]+\\.[0-9]+\\.[0-9]+" | cut -d'.' -f1)
-                CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION}")
-                
-                # Download and install ChromeDriver
-                wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-                unzip chromedriver_linux64.zip -d /usr/local/bin/
-                chmod +x /usr/local/bin/chromedriver
-                rm chromedriver_linux64.zip
+        # Get ChromeDriver version - more reliable method
+        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
+        echo "Detected Chrome major version: $CHROME_VERSION"
+        
+        # Get ChromeDriver version with retry logic
+        CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+        echo "ChromeDriver version to install: $CHROMEDRIVER_VERSION"
+        
+        if [ -z "$CHROMEDRIVER_VERSION" ]; then
+            echo "Failed to get ChromeDriver version, trying alternative method"
+            CHROMEDRIVER_VERSION=$(curl -sS "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+        fi
+        
+        # Download and install ChromeDriver
+        wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        unzip chromedriver_linux64.zip -d /usr/local/bin/
+        chmod +x /usr/local/bin/chromedriver
+        rm chromedriver_linux64.zip
 
-                # Verify installations
-                echo "Chrome version: $(google-chrome --version)"
-                echo "ChromeDriver version: $(chromedriver --version)"
-                '''
-            }
-        }
+        # Verify installations
+        echo "Chrome version: $(google-chrome --version)"
+        echo "ChromeDriver version: $(chromedriver --version)"
+        '''
+    }
+}
 
         stage('Build & Test') {
             steps {
