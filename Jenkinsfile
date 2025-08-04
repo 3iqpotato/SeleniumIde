@@ -11,12 +11,13 @@ pipeline {
         stage('Setup ChromeDriver') {
             steps {
                 sh '''
-                # Изтегляне на ChromeDriver без да се използва apt-get
+                # Изтегляне на ChromeDriver с curl
                 CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
-                wget -O chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
+                curl -Lo chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
                 unzip -o chromedriver.zip
                 chmod +x chromedriver
-                mv chromedriver /tmp/
+                mkdir -p /tmp/webdriver
+                mv chromedriver /tmp/webdriver/
                 '''
             }
         }
@@ -24,10 +25,10 @@ pipeline {
         stage('Build and Test') {
             steps {
                 sh '''
-                export PATH="$PATH:/tmp:$HOME/.dotnet"
+                export PATH="$PATH:/tmp/webdriver:$HOME/.dotnet"
                 dotnet restore
                 dotnet build --configuration Release
-                dotnet test --logger "trx;LogFileName=TestResults.trx" --filter "FullyQualifiedName!=TC01IfUserIsInvalidTryAgainTest" --results-directory /tmp/testresults
+                dotnet test --logger "trx;LogFileName=TestResults.trx" --results-directory /tmp/testresults
                 '''
             }
         }
