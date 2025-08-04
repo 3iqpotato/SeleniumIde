@@ -8,6 +8,7 @@ pipeline {
 
     environment {
         DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+        DOTNET_CLI_HOME = "${WORKSPACE}"  // задаваме директория с права за dotnet
     }
 
     stages {
@@ -38,7 +39,7 @@ pipeline {
         stage('Prepare for E2E Tests') {
             steps {
                 echo '?? Тук ще пуснем Selenium + Chrome'
-                // Можеш да добавиш допълнителен docker image тук
+                // Добави твоята логика за E2E тестове
             }
         }
     }
