@@ -90,15 +90,6 @@ stage('Build and Test') {
     }
 }
 
-stage('Test') {
-    steps {
-        bat 'dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults.trx"'
-        // Add this conversion step
-        bat 'dotnet tool install -g trx2junit'
-        bat 'trx2junit TestResults/TestResults.trx'
-    }
-}
-
     }
     
 }
