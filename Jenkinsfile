@@ -45,20 +45,16 @@ pipeline {
             }
         }
 
-        stage('Install ChromeDriver') {
-            steps {
-                sh '''
-                # Get matching ChromeDriver version
-                CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-                CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*})
-                
-                # Download and install ChromeDriver
-                wget -N https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
-                unzip chromedriver_linux64.zip -d /usr/local/bin/
-                chmod +x /usr/local/bin/chromedriver
-                '''
-            }
-        }
+stage('Install ChromeDriver') {
+    steps {
+        sh '''
+        # Изтегляне на конкретна версия на ChromeDriver (напр. 138.0.7045.62)
+        wget -N https://chromedriver.storage.googleapis.com/138.0.7045.62/chromedriver_linux64.zip
+        unzip chromedriver_linux64.zip -d /usr/local/bin/
+        chmod +x /usr/local/bin/chromedriver
+        '''
+    }
+}
 
         stage('Build & Test') {
             steps {
