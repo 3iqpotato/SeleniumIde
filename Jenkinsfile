@@ -18,7 +18,6 @@ pipeline {
         stage('Setup Environment') {
             steps {
                 script {
-                    // Fix Chocolatey installation and PATH
                     bat '''
                     @echo off
                     setlocal enabledelayedexpansion
@@ -37,8 +36,8 @@ pipeline {
                         )
                     )
                     
-                    :: Install Chrome
-                    choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums
+                    :: Force Chrome installation
+                    choco install googlechrome --version=%CHROME_VERSION% -y --force --ignore-checksums
                     endlocal
                     '''
                 }
@@ -47,18 +46,36 @@ pipeline {
         
         stage('Setup ChromeDriver') {
             steps {
-                bat '''
-                @echo off
-                echo Downloading ChromeDriver %CHROMEDRIVER_VERSION%
-                powershell -Command "& {
+                script {
+                    // Create a PowerShell script file to avoid quoting issues
+                    writeFile file: 'download_chromedriver.ps1', text: '''
                     $ProgressPreference = 'SilentlyContinue'
-                    $url = 'https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%CHROMEDRIVER_VERSION%/win64/chromedriver-win64.zip'
-                    Invoke-WebRequest -Uri $url -OutFile chromedriver.zip -UseBasicParsing
-                    Expand-Archive -Path chromedriver.zip -DestinationPath . -Force
-                    if not exist "%CHROME_INSTALL_PATH%" mkdir "%CHROME_INSTALL_PATH%"
-                    Copy-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination "%CHROME_INSTALL_PATH%\\chromedriver.exe" -Force
-                }"
-                '''
+                    $url = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${env:CHROMEDRIVER_VERSION}/win64/chromedriver-win64.zip"
+                    $downloadPath = "$env:WORKSPACE\\chromedriver.zip"
+                    $extractPath = "$env:WORKSPACE"
+                    $destinationPath = "${env:CHROME_INSTALL_PATH}\\chromedriver.exe"
+                    
+                    try {
+                        Invoke-WebRequest -Uri $url -OutFile $downloadPath -UseBasicParsing
+                        Expand-Archive -Path $downloadPath -DestinationPath $extractPath -Force
+                        if (!(Test-Path $env:CHROME_INSTALL_PATH)) {
+                            New-Item -ItemType Directory -Path $env:CHROME_INSTALL_PATH -Force
+                        }
+                        Copy-Item -Path "$extractPath\\chromedriver-win64\\chromedriver.exe" -Destination $destinationPath -Force
+                        exit 0
+                    } catch {
+                        Write-Error $_
+                        exit 1
+                    }
+                    '''
+                    
+                    // Execute the PowerShell script
+                    bat '''
+                    @echo off
+                    echo Downloading ChromeDriver %CHROMEDRIVER_VERSION%
+                    powershell -ExecutionPolicy Bypass -File "%WORKSPACE%\\download_chromedriver.ps1"
+                    '''
+                }
             }
         }
         
