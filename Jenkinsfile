@@ -47,6 +47,7 @@ pipeline {
         stage('Setup ChromeDriver') {
             steps {
                 script {
+                    // Create a PowerShell script file to avoid quoting issues
                     writeFile file: 'download_chromedriver.ps1', text: '''
                     $ProgressPreference = 'SilentlyContinue'
                     $url = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${env:CHROMEDRIVER_VERSION}/win64/chromedriver-win64.zip"
@@ -68,6 +69,7 @@ pipeline {
                     }
                     '''
                     
+                    // Execute the PowerShell script
                     bat '''
                     @echo off
                     echo Downloading ChromeDriver %CHROMEDRIVER_VERSION%
@@ -77,18 +79,33 @@ pipeline {
             }
         }
         
-        stage('Build and Test') {
-            steps {
-                bat '''
-                dotnet restore SeleniumIde.sln
-                dotnet build SeleniumIde.sln --configuration Release
-                if not exist TestResults mkdir TestResults
-                dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults\\TestResults.trx"
-                dotnet tool install -g trx2junit
-                trx2junit TestResults\\TestResults.trx
-                '''
-            }
+stage('Build and Test') {
+    steps {
+        bat '''
+        dotnet restore SeleniumIde.sln
+        dotnet build SeleniumIde.sln --configuration Release
+        if not exist TestResults mkdir TestResults
+        dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults\\TestResults.trx"
+        '''
+    }
+}
+
+stage('Test') {
+    steps {
+        bat 'dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults.trx"'
+        // Add this conversion step
+        bat 'dotnet tool install -g trx2junit'
+        bat 'trx2junit TestResults/TestResults.trx'
+    }
+}
+
+    post {
+        always {
+            archiveArtifacts artifacts: '**/TestResults/*.trx', allowEmptyArchive: true
+            junit '**/TestResults/*.trx'
         }
+    }
+
     }
     
 }
