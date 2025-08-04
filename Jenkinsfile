@@ -13,12 +13,40 @@ pipeline {
             }
         }
 
+        stage('Verify Tools') {
+            steps {
+                script {
+                    // Проверка за налични инструменти
+                    def hasCurl = sh(returnStatus: true, script: 'which curl') == 0
+                    def hasWget = sh(returnStatus: true, script: 'which wget') == 0
+                    
+                    if (!hasCurl && !hasWget) {
+                        error 'Трябва да имате curl или wget инсталирани'
+                    }
+                }
+            }
+        }
+
         stage('Setup .NET') {
             steps {
                 script {
-                    // Изтегляне и инсталиране на .NET без системни пакети
+                    // Изтегляне на .NET с наличния инструмент
+                    if (sh(returnStatus: true, script: 'which curl') == 0) {
+                        sh '''
+                        curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+                        chmod +x dotnet-install.sh
+                        ./dotnet-install.sh --version $DOTNET_VERSION
+                        '''
+                    } else {
+                        sh '''
+                        wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+                        chmod +x dotnet-install.sh
+                        ./dotnet-install.sh --version $DOTNET_VERSION
+                        '''
+                    }
+                    
+                    // Добавяне към PATH
                     sh '''
-                    curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version ${env.DOTNET_VERSION}
                     export PATH="$PATH:$HOME/.dotnet"
                     dotnet --version
                     '''
@@ -29,13 +57,20 @@ pipeline {
         stage('Setup ChromeDriver') {
             steps {
                 script {
-                    // Изтегляне на ChromeDriver директно в workspace
-                    sh '''
-                    curl -Lo chromedriver.zip https://chromedriver.storage.googleapis.com/${env.CHROMEDRIVER_VERSION}/chromedriver_linux64.zip
-                    unzip -o chromedriver.zip
-                    chmod +x chromedriver
-                    export PATH="$PATH:$(pwd)"
-                    '''
+                    // Изтегляне на ChromeDriver
+                    if (sh(returnStatus: true, script: 'which curl') == 0) {
+                        sh '''
+                        curl -Lo chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
+                        unzip -o chromedriver.zip
+                        chmod +x chromedriver
+                        '''
+                    } else {
+                        sh '''
+                        wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip -O chromedriver.zip
+                        unzip -o chromedriver.zip
+                        chmod +x chromedriver
+                        '''
+                    }
                 }
             }
         }
