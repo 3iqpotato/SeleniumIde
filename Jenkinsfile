@@ -49,25 +49,25 @@ pipeline {
             }
         }
 
-        stage('Install ChromeDriver') {
-            steps {
-                sh '''
-                # Get Chrome major version
-                CHROME_MAJOR=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
-                echo "Detected Chrome major version: $CHROME_MAJOR"
-                
-                # Get matching ChromeDriver version
-                CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR")
-                echo "Downloading ChromeDriver version: $CHROMEDRIVER_VERSION"
-                
-                # Download and install
-                wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-                unzip chromedriver_linux64.zip -d /usr/local/bin/
-                chmod +x /usr/local/bin/chromedriver
-                rm chromedriver_linux64.zip
-                '''
-            }
-        }
+stage('Install ChromeDriver') {
+    steps {
+        sh '''
+        # Get Chrome version (e.g., "138.0.7204.183")
+        CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+        echo "Detected Chrome version: $CHROME_VERSION"
+
+        # Download matching ChromeDriver (new method for Chrome 115+)
+        CHROMEDRIVER_DOWNLOAD_URL="https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
+        echo "Downloading ChromeDriver from: $CHROMEDRIVER_DOWNLOAD_URL"
+        
+        wget -q "$CHROMEDRIVER_DOWNLOAD_URL" -O chromedriver-linux64.zip
+        unzip chromedriver-linux64.zip -d /tmp/
+        mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/
+        chmod +x /usr/local/bin/chromedriver
+        rm -rf chromedriver-linux64.zip /tmp/chromedriver-linux64/
+        '''
+    }
+}
 
         stage('Verify') {
             steps {
