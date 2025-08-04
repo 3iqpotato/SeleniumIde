@@ -31,7 +31,7 @@ pipeline {
                     curl \
                     ca-certificates \
                     software-properties-common \
-                    apt-utils  # Add apt-utils to prevent debconf warnings
+                    apt-utils
                 '''
             }
         }
@@ -45,9 +45,9 @@ pipeline {
                 apt-get update
                 apt-get install -y google-chrome-stable
 
-                # Get ChromeDriver version (simplified and more reliable approach)
-                CHROME_MAJOR_VERSION=$(google-chrome --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | cut -d'.' -f1)
-                CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR_VERSION")
+                # Get ChromeDriver version
+                CHROME_MAJOR_VERSION=$(google-chrome --version | grep -oE "[0-9]+\\.[0-9]+\\.[0-9]+" | cut -d'.' -f1)
+                CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION}")
                 
                 # Download and install ChromeDriver
                 wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
