@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'mcr.microsoft.com/dotnet/sdk:8.0'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -u root'  // Run as root to avoid permission issues
         }
     }
 
@@ -39,19 +39,18 @@ pipeline {
             steps {
                 sh '''
                 # Install latest Chrome
-                wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-                sh -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
+                wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+                sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
                 apt-get update
                 apt-get install -y google-chrome-stable
 
                 # Get matching ChromeDriver
-                CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+')
-                wget "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}" -O chromedriver_version
-                CHROMEDRIVER_VERSION=$(cat chromedriver_version)
-                wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+                CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+\\.\\d+' | cut -d'.' -f1-3)
+                CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+                wget "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
                 unzip chromedriver_linux64.zip -d /usr/local/bin/
                 chmod +x /usr/local/bin/chromedriver
-                rm chromedriver_linux64.zip chromedriver_version
+                rm chromedriver_linux64.zip
 
                 # Confirm installation
                 google-chrome --version
