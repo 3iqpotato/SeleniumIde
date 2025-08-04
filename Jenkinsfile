@@ -3,9 +3,8 @@ pipeline {
     
     environment {
         CHROME_VERSION = '127.0.6533.73'
-        CHROMEDRIVER_VERSION = '127.0.6533.72'
+        CHROMEDRIVER_VERSION = '127.0.6533.73' // Must match Chrome version exactly
         CHROME_INSTALL_PATH = 'C:\\Program Files\\Google\\Chrome\\Application'
-        CHROMEDRIVER_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe'
     }
     
     stages {
@@ -16,61 +15,43 @@ pipeline {
             }
         }
         
-        stage('Set up environment') {
-            steps {
-                script {
-                    // Install Chocolatey if not present (simplified approach)
-                    bat '''
-                    @echo off
-                    where choco >nul 2>&1
-                    if %ERRORLEVEL% neq 0 (
-                        echo Installing Chocolatey
-                        SET "PATH=%PATH%;%ALLUSERSPROFILE%\\chocolatey\\bin"
-                        powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
-                    )
-                    '''
-                    
-                    // Install .NET SDK 6.0
-                    bat 'call "%ALLUSERSPROFILE%\\chocolatey\\bin\\choco" install dotnet-sdk -y --version=6.0.100'
-                    
-                    // Chrome installation
-                    bat '''
-                    @echo off
-                    call "%ALLUSERSPROFILE%\\chocolatey\\bin\\choco" uninstall googlechrome -y
-                    call "%ALLUSERSPROFILE%\\chocolatey\\bin\\choco" install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums
-                    '''
-                }
-            }
-        }
-        
-        stage('Set up ChromeDriver') {
+        stage('Install Chrome') {
             steps {
                 bat '''
                 @echo off
-                echo Downloading ChromeDriver version %CHROMEDRIVER_VERSION%
-                powershell -command "Invoke-WebRequest -Uri 'https://chromedriver.storage.googleapis.com/%CHROMEDRIVER_VERSION%/chromedriver_win32.zip' -OutFile chromedriver.zip -UseBasicParsing"
-                powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
-                if not exist "%CHROME_INSTALL_PATH%" mkdir "%CHROME_INSTALL_PATH%"
-                powershell -command "Move-Item -Path '.\\chromedriver.exe' -Destination '%CHROMEDRIVER_PATH%' -Force"
+                where choco >nul 2>&1
+                if %ERRORLEVEL% neq 0 (
+                    echo Installing Chocolatey
+                    powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+                )
+                call choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums
                 '''
             }
         }
         
-        stage('Restore dependencies') {
+        stage('Setup ChromeDriver') {
             steps {
-                bat 'dotnet restore SeleniumIde.sln'
+                bat '''
+                @echo off
+                echo Downloading ChromeDriver %CHROMEDRIVER_VERSION%
+                powershell -Command "& {
+                    $ProgressPreference = 'SilentlyContinue'
+                    $url = 'https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%CHROMEDRIVER_VERSION%/win64/chromedriver-win64.zip'
+                    Invoke-WebRequest -Uri $url -OutFile chromedriver.zip -UseBasicParsing
+                    Expand-Archive -Path chromedriver.zip -DestinationPath . -Force
+                    Copy-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination '%CHROME_INSTALL_PATH%\\chromedriver.exe' -Force
+                }"
+                '''
             }
         }
         
-        stage('Build') {
+        stage('Build and Test') {
             steps {
-                bat 'dotnet build SeleniumIde.sln --configuration Release'
-            }
-        }
-        
-        stage('Run tests') {
-            steps {
-                bat 'dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults.trx"'
+                bat '''
+                dotnet restore SeleniumIde.sln
+                dotnet build SeleniumIde.sln --configuration Release
+                dotnet test SeleniumIde.sln --logger "trx;LogFileName=TestResults.trx"
+                '''
             }
         }
     }
