@@ -92,7 +92,7 @@ stage('Build & Test') {
         dotnet test
         '''
     }
-}
+}}
 
     post {
         always {
@@ -100,4 +100,4 @@ stage('Build & Test') {
             archiveArtifacts artifacts: '**/TestResults/*.trx', allowEmptyArchive: true
         }
     }
-}}
+}
