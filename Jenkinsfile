@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        msBuild 'MSBuild-V6'  // Това е името на вашия MSBuild инструмент в Jenkins
+        msBuild 'MS-Build-V6'  // Това е името на вашия MSBuild инструмент в Jenkins
     }
 
     stages {
