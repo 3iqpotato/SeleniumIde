@@ -1,26 +1,51 @@
 pipeline {
-    agent {
-        docker {
-            image 'selenium-dotnet-tests'  // Нашия custom image
-            args '-v /var/run/docker.sock:/var/run/docker.sock -u root --shm-size=2g'
-        }
-    }
-
+    agent any
+    
     stages {
-        stage('Build & Test') {
+        stage('Prepare') {
+            agent {
+                docker {
+                    image 'selenium-dotnet-tests'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -u root --shm-size=2g'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh 'dotnet restore'
+            }
+        }
+        
+        stage('Build') {
+            agent {
+                docker {
+                    image 'selenium-dotnet-tests'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -u root --shm-size=2g'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh 'dotnet build --no-restore'
+            }
+        }
+        
+        stage('Test') {
+            agent {
+                docker {
+                    image 'selenium-dotnet-tests'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -u root --shm-size=2g'
+                    reuseNode true
+                }
+            }
             steps {
                 sh '''
                 export DISPLAY=:99
                 Xvfb :99 -screen 0 1280x1024x16 -ac &
-                
-                dotnet restore
-                dotnet build
-                dotnet test --logger "trx;LogFileName=testresults.trx" --blame
+                dotnet test --no-build --logger "trx;LogFileName=testresults.trx" --blame
                 '''
             }
         }
     }
-
+    
     post {
         always {
             junit '**/TestResults/*.trx'

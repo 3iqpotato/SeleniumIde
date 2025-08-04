@@ -24,11 +24,18 @@ public class TC01IfUserIsInvalidTryAgainTest
     [TearDown]
     public void TearDown()
     {
-        if (driver != null)
+        try
         {
-            driver.Quit();
-            // Без driver.Dispose(); NUnit се справя с ресурса
-            driver = null;
+            if (driver != null)
+            {
+                driver.Quit();
+                driver.Dispose();
+                driver = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during teardown: {ex.Message}");
         }
     }
 
