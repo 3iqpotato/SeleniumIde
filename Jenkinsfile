@@ -1,58 +1,45 @@
 pipeline {
-    agent any
-
-    stages {
-        stage('Setup Environment') {
-            steps {
-                sh '''
-                apt-get update
-                apt-get install -y wget gnupg unzip
-                '''
-            }
-        }
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Setup Chrome and ChromeDriver') {
-            steps {
-                sh '''
-                # Install Chrome
-                wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-                echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-                apt-get update
-                apt-get install -y google-chrome-stable
-
-                # Install ChromeDriver
-                CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-                CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*})
-                curl -Lo chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
-                unzip -o chromedriver.zip
-                chmod +x chromedriver
-                mv chromedriver /usr/local/bin/
-                '''
-            }
-        }
-
-        stage('Build and Test') {
-            steps {
-                sh '''
-                export PATH="$PATH:/usr/local/bin"
-                dotnet restore
-                dotnet build --configuration Release
-                dotnet test --logger "trx;LogFileName=TestResults.trx" --results-directory ./TestResults
-                '''
-            }
+    agent {
+        docker {
+            image 'mcr.microsoft.com/dotnet/sdk:8.0'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
-    post {
-        always {
-            junit '**/TestResults/*.trx'
-            archiveArtifacts artifacts: '**/TestResults/*.trx', allowEmptyArchive: true
+    environment {
+        DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/ПРОМЕНИ-ТОЗИ-URL.git'
+            }
+        }
+
+        stage('Restore Dependencies') {
+            steps {
+                sh 'dotnet restore'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'dotnet build --no-restore'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'dotnet test --no-build'
+            }
+        }
+
+        stage('Prepare for E2E Tests') {
+            steps {
+                echo '?? Тук ще пуснем Selenium + Chrome'
+                // Можеш да добавиш допълнителен docker image тук
+            }
         }
     }
 }
