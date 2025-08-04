@@ -78,18 +78,21 @@ stage('Install ChromeDriver') {
             }
         }
 
-        stage('Build & Test') {
-            steps {
-                sh '''
-                export CHROME_BIN=/usr/bin/google-chrome
-                export CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
-                dotnet restore
-                dotnet build
-                dotnet test
-                '''
-            }
-        }
+stage('Build & Test') {
+    steps {
+        sh '''
+        export CHROME_BIN=/usr/bin/google-chrome
+        export CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+        
+        # Добави headless режим и изчистване на user-data-dir
+        export CHROME_OPTS="--headless --disable-gpu --no-sandbox --disable-dev-shm-usage --remote-debugging-port=9222"
+        
+        dotnet restore
+        dotnet build
+        dotnet test
+        '''
     }
+}
 
     post {
         always {
