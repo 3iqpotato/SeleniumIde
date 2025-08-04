@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        msbuild 'MSBuild-V6'  // Забележете малките букви 'msbuild'
+        msbuild 'MS-Build-V6'  // Забележете малките букви 'msbuild'
     }
 
     stages {
