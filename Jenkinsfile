@@ -3,8 +3,10 @@ pipeline {
         docker {
             image 'mcr.microsoft.com/dotnet/sdk:8.0'
             args '-v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE/.cache:/home/seluser/.cache'
+            user 'root'  // ??? рнбю е мнбхър пед
         }
     }
+
 
     environment {
         DOTNET_CLI_TELEMETRY_OPTOUT = "1"
