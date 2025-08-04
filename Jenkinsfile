@@ -2,6 +2,15 @@ pipeline {
     agent any
 
     stages {
+        stage('Setup Environment') {
+            steps {
+                sh '''
+                apt-get update
+                apt-get install -y wget gnupg unzip
+                '''
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -11,13 +20,13 @@ pipeline {
         stage('Setup Chrome and ChromeDriver') {
             steps {
                 sh '''
-                # Инсталиране на Google Chrome (без sudo)
+                # Install Chrome
                 wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-                echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+                echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
                 apt-get update
                 apt-get install -y google-chrome-stable
 
-                # Инсталиране на ChromeDriver (без sudo)
+                # Install ChromeDriver
                 CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
                 CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*})
                 curl -Lo chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
